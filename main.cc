@@ -2,6 +2,7 @@
 #include <TopOpt.h>
 #include <LinearElasticity.h>
 #include <MMA.h>
+#include <OC.h>
 #include <Filter.h>
 #include <MPIIO.h>
 #include <mpi.h>
@@ -24,6 +25,11 @@ int main(int argc, char *argv[]){
   // Initialize PETSc / MPI and pass input arguments to PETSc
   PetscInitialize(&argc,&argv,PETSC_NULL,help);
 
+  // CLI option for OC
+  PetscInt useOC = 0;
+  PetscBool flag;
+  PetscOptionsGetInt(NULL,"-oc",&useOC,&flag);
+
 // STEP 1: THE OPTIMIZATION PARAMETERS, DATA AND MESH (!!! THE DMDA !!!)
   TopOpt *opt = new TopOpt();
   
@@ -40,6 +46,9 @@ int main(int argc, char *argv[]){
   MMA *mma;
   PetscInt itr=0;
   opt->AllocateMMAwithRestart(&itr, &mma); // allow for restart !
+
+  OC *oc = NULL;
+  if (useOC) { oc = new OC(); oc->Init(opt); }
 
 // STEP 6: FILTER THE INITIAL DESIGN/RESTARTED DESIGN
   ierr = filter->FilterProject(opt); CHKERRQ(ierr);
@@ -68,11 +77,16 @@ int main(int argc, char *argv[]){
 	// Filter sensitivities (chainrule)
 	ierr = filter->Gradients(opt); CHKERRQ(ierr);
 
-	// Sets outer movelimits on design variables
-	ierr = mma->SetOuterMovelimit(opt->Xmin,opt->Xmax,opt->movlim,opt->x,opt->xmin,opt->xmax); CHKERRQ(ierr);
+	if (useOC) {
+	  // Update via OC
+      ierr = oc->Update(opt, filter); CHKERRQ(ierr);
+	} else {
+	  // Sets outer movelimits on design variables
+	  ierr = mma->SetOuterMovelimit(opt->Xmin,opt->Xmax,opt->movlim,opt->x,opt->xmin,opt->xmax); CHKERRQ(ierr);
 
-	// Update design by MMA
-	ierr = mma->Update(opt->x,opt->dfdx,opt->gx,opt->dgdx,opt->xmin,opt->xmax); CHKERRQ(ierr);
+	  // Update design by MMA
+	  ierr = mma->Update(opt->x,opt->dfdx,opt->gx,opt->dgdx,opt->xmin,opt->xmax); CHKERRQ(ierr);
+	}
 
 	// Inf norm on the design change
 	ch = mma->DesignChange(opt->x,opt->xold);
@@ -107,6 +121,7 @@ int main(int argc, char *argv[]){
   
 // STEP 7: CLEAN UP AFTER YOURSELF
   delete mma;
+  delete oc;
   delete output;
   delete filter;
   delete opt;  

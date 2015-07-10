@@ -73,33 +73,90 @@ PetscErrorCode LinearElasticity::SetUpLoadAndBC(TopOpt *opt){
 	// Compute epsilon parameter for finding points in space:
 	PetscScalar epsi = PetscMin(a*0.05,PetscMin(b*0.05,c*0.05));
 
+	PetscInt numProblem = 0;
+	PetscBool flag;
+	PetscOptionsGetInt(NULL,"-pb",&numProblem,&flag);
+
 	// Set the values:
 	// In this case: N = the wall at x=xmin is fully clamped
 	//               RHS(z) = sin(pi*y/Ly) at x=xmax,z=zmin;
 	// OR
 	//               RHS(z) = -0.1 at x=xmax,z=zmin;
 	for (PetscInt i=0;i<nn;i++){
-		// Make a wall with all dofs clamped
-		if (i % 3 == 0 && PetscAbsScalar(lcoorp[i]-opt->xc[0]) < epsi){
-			VecSetValueLocal(N,i,0.0,INSERT_VALUES);
-			VecSetValueLocal(N,++i,0.0,INSERT_VALUES);
-			VecSetValueLocal(N,++i,0.0,INSERT_VALUES);
-		}
-		// Line load
-		if (i % 3 == 0 && PetscAbsScalar(lcoorp[i]-opt->xc[1]) < epsi && 
-				  PetscAbsScalar(lcoorp[i+2]-opt->xc[4]) < epsi){
-			VecSetValueLocal(RHS,i+2,-0.1,INSERT_VALUES);
-		}
-		// Adjust the corners
-		if (i % 3 == 0 && PetscAbsScalar(lcoorp[i]-opt->xc[1]) < epsi && 
-				  PetscAbsScalar(lcoorp[i+1]-opt->xc[2]) < epsi && 
-				  PetscAbsScalar(lcoorp[i+2]-opt->xc[4]) < epsi ){
-			VecSetValueLocal(RHS,i+2,-0.05,INSERT_VALUES);
-		}
-		if (i % 3 == 0 && PetscAbsScalar(lcoorp[i]-opt->xc[1]) < epsi && 
-				  PetscAbsScalar(lcoorp[i+1]-opt->xc[3]) < epsi && 
-   				  PetscAbsScalar(lcoorp[i+2]-opt->xc[4]) < epsi){
-			VecSetValueLocal(RHS,i+2,-0.05,INSERT_VALUES);
+		if (numProblem == 2) {
+			// Fixed DOFs
+			if (i % 3 == 0 && PetscAbsScalar(lcoorp[i]-opt->xc[0]) < epsi){
+				VecSetValueLocal(N,i,0.0,INSERT_VALUES);
+				VecSetValueLocal(N,++i,0.0,INSERT_VALUES);
+				VecSetValueLocal(N,++i,0.0,INSERT_VALUES);
+			}
+			// Loads
+			if (i % 3 == 0 && PetscAbsScalar(lcoorp[i]-opt->xc[1]) < epsi
+					&& PetscAbsScalar(lcoorp[i+1]-opt->xc[2]) < epsi) {
+				VecSetValueLocal(RHS,i+2,0.1,INSERT_VALUES);
+			}
+			if (i % 3 == 0 && PetscAbsScalar(lcoorp[i]-opt->xc[1]) < epsi
+					&& PetscAbsScalar(lcoorp[i+2]-opt->xc[5]) < epsi) {
+				VecSetValueLocal(RHS,i+1,0.1,INSERT_VALUES);
+			}
+			if (i % 3 == 0 && PetscAbsScalar(lcoorp[i]-opt->xc[1]) < epsi
+					&& PetscAbsScalar(lcoorp[i+1]-opt->xc[3]) < epsi) {
+				VecSetValueLocal(RHS,i+2,-0.1,INSERT_VALUES);
+			}
+			if (i % 3 == 0 && PetscAbsScalar(lcoorp[i]-opt->xc[1]) < epsi
+					&& PetscAbsScalar(lcoorp[i+2]-opt->xc[4]) < epsi) {
+				VecSetValueLocal(RHS,i+1,-0.1,INSERT_VALUES);
+			}
+		} else if (numProblem == 3) {
+			// Left wall
+			if (i % 3 == 0 && PetscAbsScalar(lcoorp[i]-opt->xc[0]) < epsi) {
+				VecSetValueLocal(N,i,0.0,INSERT_VALUES);
+			}
+			// Bottom-right edge
+			if (i % 3 == 0 && PetscAbsScalar(lcoorp[i]-opt->xc[1]) < epsi
+					&& PetscAbsScalar(lcoorp[i+2]-opt->xc[4]) < epsi) {
+				VecSetValueLocal(N,i+1,0.0,INSERT_VALUES);
+				VecSetValueLocal(N,i+2,0.0,INSERT_VALUES);
+			}
+			// Line load
+			if (i % 3 == 0 && PetscAbsScalar(lcoorp[i]-opt->xc[0]) < epsi
+				&& PetscAbsScalar(lcoorp[i+2]-opt->xc[5]) < epsi) {
+				VecSetValueLocal(RHS,i+2,-0.1,INSERT_VALUES);
+			}
+			// Adjust the corners
+			if (i % 3 == 0 && PetscAbsScalar(lcoorp[i]-opt->xc[0]) < epsi && 
+					  PetscAbsScalar(lcoorp[i+1]-opt->xc[2]) < epsi && 
+					  PetscAbsScalar(lcoorp[i+2]-opt->xc[5]) < epsi ){
+				VecSetValueLocal(RHS,i+2,-0.05,INSERT_VALUES);
+			}
+			if (i % 3 == 0 && PetscAbsScalar(lcoorp[i]-opt->xc[0]) < epsi && 
+					  PetscAbsScalar(lcoorp[i+1]-opt->xc[3]) < epsi && 
+					  PetscAbsScalar(lcoorp[i+2]-opt->xc[5]) < epsi){
+				VecSetValueLocal(RHS,i+2,-0.05,INSERT_VALUES);
+			}
+		} else {
+			// Fixed DOFs
+			if (i % 3 == 0 && PetscAbsScalar(lcoorp[i]-opt->xc[0]) < epsi){
+				VecSetValueLocal(N,i,0.0,INSERT_VALUES);
+				VecSetValueLocal(N,++i,0.0,INSERT_VALUES);
+				VecSetValueLocal(N,++i,0.0,INSERT_VALUES);
+			}
+			// Line load
+			if (i % 3 == 0 && PetscAbsScalar(lcoorp[i]-opt->xc[1]) < epsi && 
+					  PetscAbsScalar(lcoorp[i+2]-opt->xc[4]) < epsi){
+				VecSetValueLocal(RHS,i+2,-0.1,INSERT_VALUES);
+			}
+			// Adjust the corners
+			if (i % 3 == 0 && PetscAbsScalar(lcoorp[i]-opt->xc[1]) < epsi && 
+					  PetscAbsScalar(lcoorp[i+1]-opt->xc[2]) < epsi && 
+					  PetscAbsScalar(lcoorp[i+2]-opt->xc[4]) < epsi ){
+				VecSetValueLocal(RHS,i+2,-0.05,INSERT_VALUES);
+			}
+			if (i % 3 == 0 && PetscAbsScalar(lcoorp[i]-opt->xc[1]) < epsi && 
+					  PetscAbsScalar(lcoorp[i+1]-opt->xc[3]) < epsi && 
+					  PetscAbsScalar(lcoorp[i+2]-opt->xc[4]) < epsi){
+				VecSetValueLocal(RHS,i+2,-0.05,INSERT_VALUES);
+			}
 		}
 	}
 
