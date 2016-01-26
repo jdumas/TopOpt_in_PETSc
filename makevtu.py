@@ -96,20 +96,20 @@ def writeCells(fout,lConn,lOffset,lTypes):
 
 def writeRawCellsConn(fout,data):
 	fout.write("\t\t<Cells>\n")
-        fout.write("\t\t\t<DataArray type=\"UInt64\" Name=\"connectivity\" format=\"binary\">\n")
+	fout.write("\t\t\t<DataArray type=\"UInt64\" Name=\"connectivity\" format=\"binary\">\n")
 	fout.write(writeBin64(data))
 	fout.write("\t\t\t</DataArray>\n")
 
 def writeRawCellsOffset(fout,data):
 	fout.write("\t\t\t<DataArray type=\"UInt64\" Name=\"offsets\" format=\"binary\">\n")
-        fout.write(writeBin64(data))
+	fout.write(writeBin64(data))
 	fout.write("\t\t\t</DataArray>\n")
 
 def writeRawCellsType(fout,data):
 	fout.write("\t\t\t<DataArray type=\"UInt64\" Name=\"types\" format=\"binary\">\n")
-        fout.write(writeBin64(data))
+	fout.write(writeBin64(data))
 	fout.write("\t\t\t</DataArray>\n")
-        fout.write("\t\t</Cells>")
+	fout.write("\t\t</Cells>")
 
 	# Returns Int containing data size + data
 	# everything in base64 encoding
@@ -134,7 +134,7 @@ def writeScalarPointData(fout,lldata):
 		fout.write("\t\t\t<DataArray type=\"Float32\" Name=\"" + setname + "\" format=\"binary\">\n")
 		fout.write(writeBin64(data))
 		fout.write("\t\t\t</DataArray>\n")
-	
+
 	fout.write("\t\t</PointData>\n")
 
 
@@ -147,7 +147,7 @@ def writeRawScalarPointData(fout,ldata,setnames):
 		fout.write("\t\t\t<DataArray type=\"Float32\" Name=\"" + setnames[j] + "\" format=\"binary\">\n")
 		fout.write(writeBin64(data))
 		fout.write("\t\t\t</DataArray>\n")
-	
+
 	fout.write("\t\t</PointData>\n")
 
 
