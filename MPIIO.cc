@@ -118,7 +118,7 @@ MPIIO::MPIIO(DM da_nodes, int nPf, std::string pnames,int nCf, std::string cname
 
 	// Allocate working arrays for outputting fields from timesteps:
 	workPointField = new float[nPointsMyrank[0]*nPFields[0]]; // For first domain
-	workCellField  = new float[nCellsMyrank[0]*nCFields[0]];         // For first domain
+	workCellField  = new float[nCellsMyrank[0]*nCFields[0]];  // For first domain
 
 	delete [] pointsDomain0;
 	delete [] cellsDomain0;
@@ -129,8 +129,7 @@ MPIIO::MPIIO(DM da_nodes, int nPf, std::string pnames,int nCf, std::string cname
 }
 
 // Destructor
-MPIIO::~MPIIO()
-{
+MPIIO::~MPIIO(){
 	// Delete the allocated arrays
 	delete [] workPointField;
 	delete [] workCellField;
@@ -219,12 +218,12 @@ void MPIIO::Allocate(std::string info, const int nDom, const int nPFields[],
 	
 	// Check PETSc input for a work directory
 	char filenameChar[PETSC_MAX_PATH_LEN];
-	PetscBool flg;	
-	PetscOptionsGetString(NULL,"-workdir",filenameChar,sizeof(filenameChar),&flg);
+	PetscBool flg = PETSC_FALSE;	
+	PetscOptionsGetString(NULL,NULL,"-workdir",filenameChar,sizeof(filenameChar),&flg);
 
 	// If input, change path of the file in filename
 	if (flg){
-	        filename="";
+		filename="";
 		filename.append(filenameChar);
 		filename.append("/output.dat");
 	}
@@ -563,6 +562,9 @@ void MPIIO::writePointFields(unsigned long int timeStep, int domain, float field
 	if (ierror) {abort("Problems closing file", "MPIIO::writePointFields");}
 	// Check if it was the first time this function has been called 
 	if (!firstFieldOutputDone){firstFieldOutputDone = true;}
+	// Free the memory used for filetype
+	ierror = MPI_Type_free(&filetype);
+	if (ierror) {abort("Problems freeing datatype", "MPIIO::writePointFields");}
 	// Finally, update the offset to the beginning of the last field we wrote
 	offset += stride*(count-1)*MPI_FS;
 }
@@ -620,6 +622,9 @@ void MPIIO::writeCellFields(int domain, float fields[])
 	// Close the file
 	ierror = MPI_File_close(&fh);
 	if (ierror) {abort("Problems closing file", "MPIIO::writeCellFields");}
+	// Free the memory used for filetype
+	ierror = MPI_Type_free(&filetype);
+	if (ierror) {abort("Problems freeing datatype", "MPIIO::writeCellFields");}
 	// Finally, update the offset to the beginning of the last field we wrote
 	offset += stride*(count-1)*MPI_FS;
 }
